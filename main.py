@@ -21,6 +21,7 @@ FRDM_data = su.read_data(4, testing_data)
 
 
 
+
 # Create the full dataframe used for the model training data
 # --------------------------------------------------------------------
 res = su.setup_full_data(AME_data)
@@ -33,70 +34,115 @@ full_data = res[2]
 
 
 
+
 # gives a snapshot of the full dataframes
 # --------------------------------------------------------------------
-su.snapshot(20, full_data)
+# su.snapshot(20, full_data)
+# print('')
+# su.snapshot(20, FRDM_data)
+# print('')
+# --------------------------------------------------------------------
+
+
+
+
+# selecting the model that we will use for the training data 
+# then constuct the model and train it against the testing data
+# --------------------------------------------------------------------
+# input for model selection
 print('')
-su.snapshot(20, FRDM_data)
-# --------------------------------------------------------------------
+print('The model data used in calculating the mass excess:')
+print('-----------------------------------------------------------------')
+print('Enter 2, for Model 1:') 
+print('- contains the highest level data. Number of' \
+	    ' protons and neutrons in nuclei \n')
+print('Enter 6, for Model 2:')
+print('- adds the first four terms from the liquid drop model \n')
+print('Enter 8, for Model 3:')
+print('- adds a pairing term for both protons and neutrons \n')
+print('Enter 10, for Model 4:') 
+print('- adds the proximity of the last nucleon' \
+	    ' to a magic number for both protons and neutrons \n')
+print('Enter 12, for Model 5:')
+print('- adds two terms characterizing the' \
+	    ' nuclear shell of the last nucleon for both protons and neutrons')
+print('-----------------------------------------------------------------')
 
+print('')
+model_num = int(input('Please enter the integer corresponding to the ' \
+				  'model you wish to use: '))
+print('')
 
-
-# SAMPLE NUCLEI DATA FOR THE TRIANING SET
-# selecting the model that we will use for the training data (human input)
-# --------------------------------------------------------------------
-M2 = su.model_select(1, full_data) 	# only proton and neutron data
-# M6 = model_select(2, AME_data) 	# contains some semi-empirical mass formula terms
-# M8 = model_select(3, AME_data) 	# contains protons/neutrons pairing data
-# M10 = model_select(4, AME_data) 	# contains proximity to the magic numbers
-# M12 = model_select(5, AME_data) 	# contains proton/neutrons shell data
+# get model data
+M = su.model_select(model_num, full_data) 
 
 # Convert dataframe values to numpy arrays
-x_train, y_train = M2[0].to_numpy(), M2[1].to_numpy()
+x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
 
-# Normalize the output training data 
-# y_train = ml.minmax_norm(y_train)
 
-# Setup the network
+# Setup the network 
 # -----------------------------------------------------
 # number of hidden layers
-num_hl = 1 	
+num_hl = 1
 # num. of units in input, output and hidden layers
-input_l, output_l, hid_l = 2, 1, [60, 60] 
+input_l, output_l, hid_l = model_num, 1, [6] 
 
 # Creates the neural network class
-nn = ml.NeuralNetwork(input_l, output_l, num_hl, hid_l)
+nn = ml.NeuralNetwork('mse', input_l, output_l, num_hl, hid_l)
 # Display the model summary 
 nn.display()
 # Train the model
-nn.fit(x_train, y_train, 1000)
+nn.fit(x_data, y_data, 5000, 0)
+# Plot loss over epochs
+nn.plot_loss()
 # -----------------------------------------------------
 # --------------------------------------------------------------------
 
 
 
-# using the model to calculate the mass excess for all the available N, Z
-# in the FRDM (testing) dataset
+
+# using the model to calculate the mass excess for all the available 
+# N, Z in the AME compared to the FDRM (testing) dataset (Fig. 1)
+# --------------------------------------------------------------------
+y_FRDM = FRDM_data['ME_F'].to_numpy()
+
+
+# Use the model on the nuclei NOT included in the AME_data
+# and compare to the FDRM values
+# -----------------------------------------------------
+y_mod = nn.predict(x_data) 
+# -----------------------------------------------------
+
+
+# setup the matrices for the datasets 
+# -----------------------------------------------------
+frdm_M = pl.create_matrix(FRDM_data['Z'], FRDM_data['N'], y_FRDM)
+model_M = pl.create_matrix(full_data['Z'], full_data['N'], y_mod)
+# -----------------------------------------------------
+
+
+# plot the output heatmap comparison
+# -----------------------------------------------------
+del_M = pl.matrix_sub(model_M, frdm_M)
+pl.plot_output(del_M)
+# -----------------------------------------------------
+# --------------------------------------------------------------------
+
+
+
+
+# MSE BETWEEN MODEL AND FRDM FOR NON-EXPERIMENTAL NUCLEI
 # --------------------------------------------------------------------
 # Setup the test array from the FRDM data
-x_test = FRDM_data[['N', 'Z']].to_numpy()
-y_test = FRDM_data['ME_F'].to_numpy()
+# x_test = FRDM_data[['N', 'Z']].to_numpy()
+# y_test = FRDM_data['ME_F'].to_numpy()
 
-# Test the model
-y_pred = nn.predict(x_test)
-# --------------------------------------------------------------------
-# ml.example_prob()
+# Evaluate the model using the 
+# mod_test = nn.evaluate(x_test, y_test)
 
-
-frdm_ME = pl.create_matrix(FRDM_data['Z'], FRDM_data['N'], y_test)
-model_ME = pl.create_matrix(FRDM_data['Z'], FRDM_data['N'], y_pred)
-
-
-# Plot the output 
-# --------------------------------------------------------------------
-# exp_ME = su.exp_result(n_rows, [120, 170], AME_data.N, AME_data.Z, \
-					   # AME_data.MASS_EXCESS)
-# mod_ME = 
-
-pl.plot_output(abs(frdm_ME - model_ME))
+# Use the model on the nuclei NOT included in the AME_data and compare 
+# to the FDRM values
+# ----------------------------------------------------------------
+# y_pred = nn.predict(x_test)
+# ----------------------------------------------------------------
 # --------------------------------------------------------------------
