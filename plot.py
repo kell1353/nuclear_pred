@@ -30,6 +30,33 @@ def create_matrix(Z, N, del_ME):
 # -------------------------------------------------------------------------------
 
 
+## ------------------------------------------------------------------------------
+# Creates a matrix where # of neutrons and # protons correspond to the indices
+# the values correspond to the comparison of the model ME to the FRDM data
+# -------------------------------------------------------------------------------
+# Input:
+	# mod_mat
+	# frdm_mat
+# -------------------------------------------------------------------------------
+# Output:
+	# del_ME
+# -------------------------------------------------------------------------------
+def matrix_sub(mod_mat, frdm_mat):
+
+	mod_sh = mod_mat.shape
+	nrows, ncols = mod_sh[0], mod_sh[1]
+
+	del_ME = np.zeros((nrows+1, ncols+1))
+
+	for i in range(nrows):
+		for j in range(ncols):
+			if mod_mat[i, j] != 0 and frdm_mat[i, j] != 0:
+				del_ME[i, j] = abs(frdm_mat[i, j] - mod_mat[i, j])
+
+	return del_ME
+# -------------------------------------------------------------------------------
+
+
 
 
 ## ------------------------------------------------------------------------------
@@ -48,14 +75,14 @@ def plot_output(del_ME):
 
 	# Constructs a heat map using the martix data
 	# ------------------------------------
-	im = plt.imshow(del_ME, cmap='hot_r', interpolation='nearest', origin='lower', vmin=0, vmax=12)
+	im = plt.imshow(del_ME, cmap='hot_r', interpolation='nearest', origin='lower', vmin=0, vmax=6)
 	# ------------------------------------
 
 	# Plot settings 
 	# ------------------------------------
 	# set labels
-	ax1.set_xlabel('$N$', size = 12)
-	ax1.set_ylabel('$Z$', size = 12)
+	ax1.set_xlabel('N', size = 12)
+	ax1.set_ylabel('Z', size = 12)
 
 	# remove spines
 	ax1.spines['top'].set_visible(False)
@@ -63,7 +90,7 @@ def plot_output(del_ME):
 
 	# color bar settings
 	cbar = plt.colorbar(im, fraction=0.033, pad=0.04)
-	cbar.set_ticks([1, 2, 3, 4])
+	cbar.set_ticks([1, 2, 3, 4, 5, 6])
 	cbar.set_label("Mass Difference (MeV) $[\u03B4_{ME}]$", size = 12)
 	# ------------------------------------
 	
