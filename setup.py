@@ -113,36 +113,6 @@ def setup_full_data(AME_data):
 
 
 
-## ------------------------------------------------------------------------------
-# Reads in the data from the input file into a panda data frame
-# -------------------------------------------------------------------------------
-# Input:
-	# num_rows  	integer 	number of different nuclei in the data
-	# pn_range 		array 		max # of the allowed nuclei [# protons, # neutrons]
-	# N 			array 		neutron data from the data frame
-	# Z 			array 		proton data from the data frame
-	# ME 			array 		experimental mass excess data from the data frame
-# -------------------------------------------------------------------------------
-# Output:
-	# exp_output 	matrix 		matrix containing the exp. mass excess per nuclei
-# -------------------------------------------------------------------------------
-def exp_result(num_rows, pn_range, N, Z, ME):
-
-	# Creates a matrix based on the proton neutron values
-	# ------------------------------------	
-	exp_output = np.zeros((pn_range[0], pn_range[1])) 				# (120, 170)
-	# ------------------------------------	
-
-	# Sets a value for each N, Z corresponidng to a matrix element
-	# ------------------------------------
-	for i in range(num_rows): 
-		exp_output[Z[i], N[i]] = ME[i]
-	# ------------------------------------
-
-	return exp_output
-# -------------------------------------------------------------------------------
-
-
 
 ## ------------------------------------------------------------------------------
 # Reads in the data from the input file into a panda data frame
@@ -158,7 +128,7 @@ def model_select(m_num, full_data):
 	# Selecting the model space from the main data frame 
 	# M2, M6, M10, M12,...
 	# -----------------------------------------------------------------
-	if (m_num == 1):
+	if (m_num == 2):
 		# Model 1 contains the highest level data. Number of protons 
 		# and neutrons in nuclei
 		# ------------------------------------------
@@ -167,23 +137,23 @@ def model_select(m_num, full_data):
 
 	# These models add data pertaining to the liquid drop model
 	# ------------------------------------------
-	elif (m_num == 2):
+	elif (m_num == 6):
 		# Model 2 adds the first four terms from the liquid drop model
 		M = full_data[['N', 'Z', 'LD1', 'LD2', 'LD3', 'LD4']]
 
-	elif (m_num == 3):
+	elif (m_num == 8):
 		# Model 3 adds a pairing term for both protons and neutrons
 		M = full_data[['N', 'Z', 'LD1', 'LD2', 'LD3', 'LD4', 'LD5', 'LD6']]
 	# ------------------------------------------
 
 	# These models add data pertaining to the nuclear shell model
 	# ------------------------------------------
-	elif (m_num == 4): 
+	elif (m_num == 10): 
 	# Model 4 adds the proximity of the last nucleon to a magic number for both 
 	# protons and neutrons
 		M = full_data[['N', 'Z', 'LD1', 'LD2', 'LD3', 'LD4', 'LD5', 'LD6', 'SM1', \
 						 'SM2']]
-	elif (m_num == 5):
+	elif (m_num == 12):
 	# Model 5 adds two terms characterizing the nuclear shell of the last nucleon 
 	# for both protons and neutrons
 		M = full_data[['N', 'Z', 'LD1', 'LD2', 'LD3', 'LD4', 'LD5', 'LD6', 'SM1', \
@@ -191,7 +161,8 @@ def model_select(m_num, full_data):
 	# ------------------------------------------
 
 	else:
-		print('Please select a valid model number [1, 2, 3, 4, 5]')
+		print('')
+		print('Please select a valid integer from: [2, 6, 8, 10, 12]')
 		sys.exit()
 	# -----------------------------------------------------------------
 
@@ -202,5 +173,3 @@ def model_select(m_num, full_data):
 
 	return [M, ME]
 # -------------------------------------------------------------------------------
-
-
