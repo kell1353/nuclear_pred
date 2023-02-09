@@ -5,11 +5,10 @@ from 	tensorflow.keras import layers
 
 import 	numpy as np
 import 	matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 import 	sys
 
-
-# POSSIBLY EXPLORE MULTIPLE TYPES OF NEURAL NETWORKS--------------
 
 ## ------------------------------------------------------------------------------
 # Calculate the average standard deviation, more specifically the root 
@@ -32,95 +31,6 @@ def avg_sd(K, delME_AME, delME_MDN):
 # -------------------------------------------------------------------------------
 
 
-## ------------------------------------------------------------------------------
-# 
-# -------------------------------------------------------------------------------
-# Input:
-	# 		 
-# -------------------------------------------------------------------------------
-# Output:
-# -------------------------------------------------------------------------------
-def minmax_norm(array):
-
-	n = len(array)
-
-	min_val = min(array) # minimum value of the array
-	max_val = max(array) # maximum value of the array
-
-	# the numerical range
-	array_range = max_val - min_val
-
-	# normalize the array to values betweeen 0 and 1
-	norm = np.zeros(n)
-	for i in range(n):
-		norm[i] = (array[i] - min_val)/array_range
-
-	return norm
-# -------------------------------------------------------------------------------
-
-
-
-# STANDARD MODELING APPROACH (LINEAR LEAST SQUARES)
-	
-## ------------------------------------------------------------------------------
-# Linear least squares appoach to constructing a linear model
-# -------------------------------------------------------------------------------
-# Input:
-	# num_rows 		integer 	number of different nuclei in the data
-	# num_params 	integer 	number of parameters used to model the data
-	# ME 			array 		the experimental mass excess for the nuclei
-	# del_ME 		array 		the experimental uncertainty of the mass excess
-	# lin_terms		matrix 		the features used in the model
-# -------------------------------------------------------------------------------
-# Output:
-	# a 			array 		returns the optimal parameters for the model
-# -------------------------------------------------------------------------------
-def LLSQ(num_rows, num_params, ME, del_ME, lin_terms): 
-
-	# Model: h(x) = sum_i=0^num_params a_i*f_i(N,Z) 
-		# f - basis functions (defined in features) | a - weights
-
-	# minimize the chi_squares function by setting the derivatives equal to zero.
-	# doing this we end up needing to solve a system of equations. 
-		# alpha * a = beta - > a = alpha^-1 * beta | a - set of parameters
-
-	# Setup the arrays
-	# --------------------------------------------------
-	alpha = np.zeros((num_params, num_params))
-	beta = np.zeros(num_params)
-	# --------------------------------------------------
-
-	# Construct the alpha and beta array used in the min. chis_squared 
-	# ---------------------------------------------------
-	for k in range(num_rows):
-
-		# to avoid a divide by zero error at C12, 
-		# since it works as the exp. baseline
-		# -----------------------------------------
-		if del_ME[k] == 0: continue
-		# -----------------------------------------
-
-		for i in range(num_params):
-			for j in range(num_params):
-
-				alpha[i,j] += ((lin_terms.iloc[k,i]*lin_terms.iloc[k,j])/(del_ME[k]**2.0))
-
-			beta[i] += ((lin_terms.iloc[k,i]*ME[k])/(del_ME[k]**2.0))
-	# ---------------------------------------------------
-
-	# Invert the alpha matrix
-	# ---------------------------------------------------
-	inv_alpha = np.linalg.inv(alpha)
-
-	# matrix multiply to get the model parameters
-	a = inv_alpha @ beta 
-	# ---------------------------------------------------
-
-	return a 
-# -------------------------------------------------------------------------------
-
-
-
 
 # FEEDFORWARD NEURAL NETWORK APPROACHES 
 
@@ -132,6 +42,7 @@ class NeuralNetwork:
 	# Create a model that maps a vectot of inputs to a singular output
 	# --------------------------------------------------------------------------
 	# Input:
+		# mod_loss 		string 		name of the loss used in training the model
 		# input_num 	integer 	number of units in the input layer
 		# output_num 	integer  	number of units in the output layer
 		# layer_num 	integer 	number of hidden layers in the network
@@ -139,25 +50,28 @@ class NeuralNetwork:
 	# --------------------------------------------------------------------------
 	# Output:
 	# --------------------------------------------------------------------------
-	def __init__(self, input_num, output_num, layer_num, hid_units):
+	def __init__(self, mod_loss, input_num, output_num, layer_num, hid_units):
 		self.model = keras.Sequential()
 
 		# Setting each layer as a Dense layer - each of the neurons of the dense 
 		# layers receives input from all neurons of the previous layer
 		# -------------------------------------------------------------------
 		# Initial layer containing the a linear unit 
-		self.model.add(keras.layers.Dense(units = input_num, activation = 'linear', input_shape=(input_num,), name='Input_Layer'))
-		
-		# Hidden layers containing 60 units, with the ReLU activation function
+		# self.model.add(keras.layers.Dense(units = input_num, activation = 'linear', \
+		# 								  input_shape=(input_num,), name='Input_Layer'))
+		self.model.add(keras.layers.InputLayer(input_shape=(input_num,), name='Input_Layer'))
+
+		# Hidden layers containing 60 units, with the ReLU activation function (or tanh)
 		for l in range(layer_num):
-			self.model.add(keras.layers.Dense(units = hid_units[l], activation = 'relu', name='Hidden_Layer_'+str(l)))
+			self.model.add(keras.layers.Dense(units = hid_units[l], activation = 'relu', name='Hidden_Layer_'+str(l+1)))
 	
 		# Final output linear layer, since the prediction is continuous
 		self.model.add(keras.layers.Dense(units = output_num, activation = 'linear', name='Output_Layer'))
 		# --------------------------------------------------------------------
 
 		# Compile. Use the loss function - mean square error, and optimization - adam
-		self.model.compile(loss='mse', optimizer="adam")
+		self.mod_loss = mod_loss
+		self.model.compile(loss='mse', optimizer='adam', metrics=['accuracy'])
 	## --------------------------------------------------------------------------
 
 	
@@ -176,12 +90,43 @@ class NeuralNetwork:
 	# Input:
 		# x_data 	array 		input training data 
 		# y_data 	array 		corresponding outputs to the training data
-		# returns	integer		number of epochs (iterations)
+		# runs 		integer		number of epochs (iterations)
+		# verbosity integer 	0 - no update, 1 - progress bar, 2 - one line per epoch
 	# --------------------------------------------------------------------------
 	# Output:
 	# --------------------------------------------------------------------------
-	def fit(self, x_data, y_data, runs):
-		self.model.fit(x_data, y_data, epochs = runs, verbose = 1)
+	def fit(self, x_data, y_data, runs, verbosity):
+		# split the input data into random train and test datasets
+			# random_state - pass an int for reproducible output across multiple 
+			# 				 function calls
+		# ----------------------------------------------------
+		x_train, x_val, y_train, y_val = \
+		train_test_split(x_data, y_data, test_size = 0.5, random_state = 1)
+		# ----------------------------------------------------
+
+		# This callback will stop the training when there is no 
+		# improvement in the val_loss for twenty consecutive epochs
+		# ----------------------------------------------------
+		callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=100)
+		# ----------------------------------------------------
+
+		# fit training data and evaluate testing data
+		# ----------------------------------------------------
+		res = self.model.fit(x_train, y_train, epochs = runs, \
+			 				 callbacks=[callback], verbose = verbosity, \
+			 				 validation_data = (x_val, y_val))
+		# ----------------------------------------------------
+
+		# save training and testing outputs for plotting
+		# ----------------------------------------------------
+		self.epochs = np.arange(1, len(res.history['val_loss'])+1, 1)
+		self.loss, self.val_loss = res.history['loss'], res.history['val_loss'] 
+
+		# note: in regresssion analysis such as mse loss 
+		# accuracy is meaningless since mse loss can be used 
+		# as the performance evaluater
+		self.accuracy, self.val_accuracy = res.history['accuracy'], res.history['val_accuracy']
+		# ----------------------------------------------------
 	# --------------------------------------------------------------------------
 
 	
@@ -200,18 +145,79 @@ class NeuralNetwork:
 
 	
 	# --------------------------------------------------------------------------
-	# Display the result
+	# Display the loss of training the model 
 	# --------------------------------------------------------------------------
 	# Input:
-		# x_data
-		# y_data
-		# runs
+		# epochs		array 	number of iterations
+		# loss 			array 	the values for the training loss per epoch
+		# val_loss 		array 	the values for the testing loss per epoch
 	# --------------------------------------------------------------------------
 	# Output:
 	# --------------------------------------------------------------------------
-	def plot(self, x_data, y_data, y_predicted):
-		plt.scatter(x_data[::1], y_data[::1], s = 4)
-		plt.plot(x_data, y_predicted, 'r', linewidth = .4)
+	def plot_loss(self):
+		fig, ((ax1)) = plt.subplots(nrows=1, ncols=1)
+
+		# plot training and testing loss
+		# ------------------------------------
+		ax1.plot(self.epochs, self.loss, 'r', c='b', linewidth=.4, label='training')
+		ax1.plot(self.epochs, self.val_loss, 'r', c='k', linewidth=.4, label='validation')
+		# ------------------------------------
+
+		# Plot settings 
+		# ------------------------------------
+		# set labels
+		ax1.set_xlabel('epochs', size = 12)
+		ax1.set_ylabel(self.mod_loss + ' loss', size = 12)
+
+		# remove spines
+		ax1.spines['top'].set_visible(False)
+		ax1.spines['right'].set_visible(False)
+
+		# enable legend
+		ax1.legend()
+
+		# ------------------------------------
+
+		plt.tight_layout()
+		plt.show()
+	# --------------------------------------------------------------------------
+
+
+	# --------------------------------------------------------------------------
+	# Display the accuracy of training the model (if possible)
+	# --------------------------------------------------------------------------
+	# Input:
+		# epochs		array 	number of iterations
+		# accuracy 		array 	the values for the training acccuracy per epoch
+		# val_accuracy 	array 	the values for the testing acccuracy per epoch
+	# --------------------------------------------------------------------------
+	# Output:
+	# --------------------------------------------------------------------------
+	# --------------------------------------------------------------------------
+	def plot_accuracy(self):
+		fig, ((ax1)) = plt.subplots(nrows=1, ncols=1)
+
+		# plot training and testing accuracy
+		# ------------------------------------
+		ax1.plot(self.epochs, self.accuracy, 'r', c='b', linewidth=.4, label='training')
+		ax1.plot(self.epochs, self.val_accuracy, 'r', c='k', linewidth=.4, label='validation')
+		# ------------------------------------
+
+		# Plot settings 
+		# ------------------------------------
+		# set labels
+		ax1.set_xlabel('epochs', size = 12)
+		ax1.set_ylabel('accuracy', size = 12)
+
+		# remove spines
+		ax1.spines['top'].set_visible(False)
+		ax1.spines['right'].set_visible(False)
+
+		# enable legend
+		ax1.legend()
+		# ------------------------------------
+
+		plt.tight_layout()
 		plt.show()
 	# --------------------------------------------------------------------------
 ## ------------------------------------------------------------------------------
@@ -219,6 +225,12 @@ class NeuralNetwork:
 
 
 # Use a probabilistic neural network (single layer) (MDN)
+# The idea is to assume the output data resemebles a mix of different probabiliy 
+# distributions, os insted of calculating the output node, y, from input vec(x) we
+# calculate the parameters of the probability distribution using our neural network. 
+# - In this case we need mean (\mu) and variance (\sigma) for the Gaussian distribution.
+# - these networks can capture probabilistic data much better than standard NN's
+
 
 # Our MDN in PyTorch uses an Adam optimizer with
 # a learning rate of 0.001 (the default), with a hyperbolic
@@ -226,6 +238,10 @@ class NeuralNetwork:
 # NN are initialized randomly. The MDN was found to
 # be converged after training for 100,000 epochs, which is
 # used throughout this work.
+
+# class MDN:
+
+
 
 
 ## ------------------------------------------------------------------------------
@@ -253,6 +269,9 @@ def example_prob():
 	nn.fit(x_train, y_train, 100)
 	# Test the model
 	y_pred = nn.predict(x_data)
+
 	# Plot the testing results
-	nn.plot(x_data, y_data, y_pred)
+	plt.scatter(x_data[::1], y_data[::1], s = 4)
+	plt.plot(x_data, y_predicted, 'r', linewidth = .4)
+	plt.show()
 # -------------------------------------------------------------------------------
