@@ -1,7 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
 
-import random
 
 ## ------------------------------------------------------------------------------
 # Creates a matrix where # of neutrons and # protons correspond to the indices
@@ -12,6 +11,7 @@ import random
 	# del_ME 		matrix 		contains the difference from the data
 # -------------------------------------------------------------------------------
 # Output:
+	# a 			matrix
 # -------------------------------------------------------------------------------
 def create_matrix(Z, N, del_ME):
 
@@ -32,14 +32,15 @@ def create_matrix(Z, N, del_ME):
 
 ## ------------------------------------------------------------------------------
 # Creates a matrix where # of neutrons and # protons correspond to the indices
-# the values correspond to the comparison of the model ME to the FRDM data
+# the values correspond to the comparison of the model ME to the FRDM data. ONLY
+# for nuclei measured in AME 2016
 # -------------------------------------------------------------------------------
 # Input:
-	# mod_mat
-	# frdm_mat
+	# mod_mat		matrix 		contains the model mass excess data related to N, Z
+	# frdm_mat		matrix 		contains the FRDM mass excess data related to N, Z
 # -------------------------------------------------------------------------------
 # Output:
-	# del_ME
+	# del_ME 		matrix 		contains the absoulute comparison between two results
 # -------------------------------------------------------------------------------
 def matrix_sub(mod_mat, frdm_mat):
 
@@ -63,30 +64,32 @@ def matrix_sub(mod_mat, frdm_mat):
 # Plots the difference matrix 
 # -------------------------------------------------------------------------------
 # Input:
+	# title 		string 		title of the plot
+	# filename 		string 	 	name of the output file
+	# output_path	string 		path of the output directory  
 	# del_ME 		matrix 		contains the difference from the FDRM
 # -------------------------------------------------------------------------------
 # Output:
 # -------------------------------------------------------------------------------
 
-def plot_output(del_ME):
-	fig, ((ax1)) = plt.subplots(nrows=1, ncols=1)
-
-	# len_array = len(N)
+def plot_output(title, filename, output_path, del_ME):
+	fig, ((axes)) = plt.subplots(nrows=1, ncols=1)
 
 	# Constructs a heat map using the martix data
 	# ------------------------------------
-	im = plt.imshow(del_ME, cmap='hot_r', interpolation='nearest', origin='lower', vmin=0, vmax=6)
+	im = axes.imshow(del_ME, cmap='hot_r', interpolation='nearest', origin='lower', vmin=0, vmax=6)
 	# ------------------------------------
 
 	# Plot settings 
 	# ------------------------------------
 	# set labels
-	ax1.set_xlabel('N', size = 12)
-	ax1.set_ylabel('Z', size = 12)
+	axes.set_title(title)
+	axes.set_xlabel('N', size = 12)
+	axes.set_ylabel('Z', size = 12)
 
 	# remove spines
-	ax1.spines['top'].set_visible(False)
-	ax1.spines['right'].set_visible(False)
+	axes.spines['top'].set_visible(False)
+	axes.spines['right'].set_visible(False)
 
 	# color bar settings
 	cbar = plt.colorbar(im, fraction=0.033, pad=0.04)
@@ -94,10 +97,9 @@ def plot_output(del_ME):
 	cbar.set_label("Mass Difference (MeV) $[\u03B4_{ME}]$", size = 12)
 	# ------------------------------------
 	
-
-	plt.show()
+	# Save plot to output folder
+	fig.savefig(output_path + filename, dpi=300)
 # -------------------------------------------------------------------------------
-
 
 
 
