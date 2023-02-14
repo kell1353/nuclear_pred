@@ -45,39 +45,41 @@ def snapshot(num_rows, df):
 # Reads in the data from the input file into a panda data frame
 # -------------------------------------------------------------------------------
 # Input:
-	# AME_data 		dataframe 		dataframe containing the proton & neutron data
+	# d_name 	string 			name of data file (AME or FRDM)
+	# data 		dataframe 		dataframe containing the proton & neutron data
 # -------------------------------------------------------------------------------
 # Output:
 	# n_rows 		integer 		number of different nuclei in the data
 	# n_cols 		integer 		number of dataframe columns
-	# AME_data 		dataframe 		dataframe containing additional model terms
+	# data 			dataframe 		dataframe containing additional model terms
 # -------------------------------------------------------------------------------
-def setup_full_data(AME_data):
+def setup_full_data(d_name, data):
 
 	# Get the shape of the data frame
 	# -----------------------------------------------------------
-	df_shape = AME_data.shape
+	df_shape = data.shape
 
 	# Get the number of (rows, columns)
 	n_rows, n_cols = df_shape[0], df_shape[1]
 	# -----------------------------------------------------------
 
-	# convert mass excess to MeV
+	# convert mass excess to MeV (only for AME file)
 	# -----------------------------------------------------------
-	AME_data['MASS_EXCESS'] = AME_data['MASS_EXCESS']*(10**(-3))
-	AME_data['ME_unc'] = AME_data['ME_unc']*(10**(-3))
+	if d_name == "AME":
+		data['MASS_EXCESS'] = data['MASS_EXCESS']*(10**(-3))
+		data['ME_unc'] = data['ME_unc']*(10**(-3))
 	# -----------------------------------------------------------
 
 
 	# Variables for the liquad drop model 
 	# -----------------------------------------------------------
-	vol = f.get_volume_data(AME_data.N, AME_data.Z) 			# volume term
+	vol = f.get_volume_data(data.N, data.Z) 			# volume term
 	surf = f.get_surface_data(vol)  							# surface term
-	coul = f.get_coulomb_data(AME_data.N, AME_data.Z, vol) 		# Coulomb term
-	asym = f.get_aymmetric_data(AME_data.N, AME_data.Z, vol)	# asymmetry term
+	coul = f.get_coulomb_data(data.N, data.Z, vol) 		# Coulomb term
+	asym = f.get_aymmetric_data(data.N, data.Z, vol)	# asymmetry term
 								
-	pair_p = f.get_pairing_data(n_rows, AME_data.Z)				# pairing terms
-	pair_n = f.get_pairing_data(n_rows, AME_data.N)				
+	pair_p = f.get_pairing_data(n_rows, data.Z)				# pairing terms
+	pair_n = f.get_pairing_data(n_rows, data.N)				
 	# -----------------------------------------------------------
 
 
@@ -86,29 +88,29 @@ def setup_full_data(AME_data):
 	# Neutron and Proton magic numbers
 	N_mn, Z_mn = [2, 8, 20, 28, 50, 82, 126], [2, 8, 20, 28, 50, 82, 114]
 
-	delta_Z = f.get_delta_data(n_rows, Z_mn, AME_data.Z)
-	delta_N = f.get_delta_data(n_rows, N_mn, AME_data.N)
-	Z_shell = f.get_shell_data(n_rows, AME_data.Z)
-	N_shell = f.get_shell_data(n_rows, AME_data.N)
+	delta_Z = f.get_delta_data(n_rows, Z_mn, data.Z)
+	delta_N = f.get_delta_data(n_rows, N_mn, data.N)
+	Z_shell = f.get_shell_data(n_rows, data.Z)
+	N_shell = f.get_shell_data(n_rows, data.N)
 	# -----------------------------------------------------------
 
 
 	# Add new columns to the data frame 
 	# -----------------------------------------------------------
-	AME_data['LD1'] = vol
-	AME_data['LD2'] = surf
-	AME_data['LD3'] = coul
-	AME_data['LD4'] = asym
-	AME_data['LD5'] = pair_p
-	AME_data['LD6'] = pair_n
+	data['LD1'] = vol
+	data['LD2'] = surf
+	data['LD3'] = coul
+	data['LD4'] = asym
+	data['LD5'] = pair_p
+	data['LD6'] = pair_n
 
-	AME_data['SM1'] = delta_Z
-	AME_data['SM2'] = delta_N
-	AME_data['SM3'] = Z_shell
-	AME_data['SM4'] = N_shell
+	data['SM1'] = delta_Z
+	data['SM2'] = delta_N
+	data['SM3'] = Z_shell
+	data['SM4'] = N_shell
 	# -----------------------------------------------------------
 
-	return n_rows, n_cols, AME_data
+	return n_rows, n_cols, data
 # -------------------------------------------------------------------------------
 
 
@@ -124,7 +126,7 @@ def setup_full_data(AME_data):
 # Output:
 	# M
 # -------------------------------------------------------------------------------
-def model_select(m_num, full_data):
+def model_select(d_name, m_num, full_data):
 	# Selecting the model space from the main data frame 
 	# M2, M6, M10, M12,...
 	# -----------------------------------------------------------------
@@ -166,10 +168,8 @@ def model_select(m_num, full_data):
 		sys.exit()
 	# -----------------------------------------------------------------
 
-	ME = full_data['MASS_EXCESS']
-
-	# print('')
-	# print(M.shape)
+	if d_name == "AME": ME = full_data['MASS_EXCESS']
+	elif d_name == "FRDM": ME = full_data['ME_F']
 
 	return [M, ME]
 # -------------------------------------------------------------------------------
