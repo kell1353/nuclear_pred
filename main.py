@@ -1,14 +1,21 @@
 import sys
-import numpy as np
 
 import ML_lib as ml
 import setup as su
 import plot as pl
 
+import examples as ex
+
+import numpy as np
+
 
 # Set the path for the training and testing files. Then read them into
 # a panda dataframe
 # --------------------------------------------------------------------
+# input_path
+output_path = "C:/Users/austi/Desktop/Code_Files/Machine_Learning_Projects" \
+				"/nuclear_pred/output/"
+
 training_data = 'training_data.txt'
 testing_data = 'testing_data.txt'
 
@@ -20,11 +27,9 @@ FRDM_data = su.read_data(4, testing_data)
 # --------------------------------------------------------------------
 
 
-
-
 # Create the full dataframe used for the model training data
 # --------------------------------------------------------------------
-res = su.setup_full_data(AME_data)
+res = su.setup_full_data("AME", AME_data)
 
 # get number of rows and columns from the dataframe
 n_rows, n_cols = res[0], res[1]
@@ -32,15 +37,23 @@ n_rows, n_cols = res[0], res[1]
 full_data = res[2]
 # --------------------------------------------------------------------
 
+# Create the full dataframe used for the model testing data
+# --------------------------------------------------------------------
+res = su.setup_full_data("FRDM", FRDM_data)
+
+# return the full datafram
+FRDM_full_data = res[2]
+# --------------------------------------------------------------------
+
 
 
 
 # gives a snapshot of the full dataframes
 # --------------------------------------------------------------------
-# su.snapshot(20, full_data)
-# print('')
-# su.snapshot(20, FRDM_data)
-# print('')
+su.snapshot(20, full_data)
+print('')
+su.snapshot(20, FRDM_full_data)
+print('')
 # --------------------------------------------------------------------
 
 
@@ -73,8 +86,8 @@ model_num = int(input('Please enter the integer corresponding to the ' \
 				  'model you wish to use: '))
 print('')
 
-# get model data
-M = su.model_select(model_num, full_data) 
+# get model training data
+M = su.model_select("AME", model_num, full_data) 
 
 # Convert dataframe values to numpy arrays
 x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
@@ -85,16 +98,22 @@ x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
 # number of hidden layers
 num_hl = 1
 # num. of units in input, output and hidden layers
-input_l, output_l, hid_l = model_num, 1, [6] 
+input_l, output_l, hid_l = model_num, 1, [10] 
+# type of network
+network = "nn"
+title = "M"+str(model_num)+"_"+network
 
 # Creates the neural network class
-nn = ml.NeuralNetwork('mse', input_l, output_l, num_hl, hid_l)
+nn = ml.NeuralNetwork(network, input_l, output_l, num_hl, hid_l)
 # Display the model summary 
 nn.display()
 # Train the model
-nn.fit(x_data, y_data, 5000, 0)
-# Plot loss over epochs
-nn.plot_loss()
+nn.fit(x_data, y_data, 5000, 75, 0)
+# Save the model to .txt file
+# nn.save(title+"_model", output_path)
+# Plot loss or accuracy over epochs
+if network == "mdn": nn.plot_accuracy()
+else: nn.plot_loss()
 # -----------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -104,8 +123,7 @@ nn.plot_loss()
 # using the model to calculate the mass excess for all the available 
 # N, Z in the AME compared to the FDRM (testing) dataset (Fig. 1)
 # --------------------------------------------------------------------
-y_FRDM = FRDM_data['ME_F'].to_numpy()
-
+y_FRDM = FRDM_full_data['ME_F'].to_numpy()
 
 # Use the model on the nuclei NOT included in the AME_data
 # and compare to the FDRM values
@@ -113,10 +131,9 @@ y_FRDM = FRDM_data['ME_F'].to_numpy()
 y_mod = nn.predict(x_data) 
 # -----------------------------------------------------
 
-
 # setup the matrices for the datasets 
 # -----------------------------------------------------
-frdm_M = pl.create_matrix(FRDM_data['Z'], FRDM_data['N'], y_FRDM)
+frdm_M = pl.create_matrix(FRDM_data['Z'], FRDM_full_data['N'], y_FRDM)
 model_M = pl.create_matrix(full_data['Z'], full_data['N'], y_mod)
 # -----------------------------------------------------
 
@@ -124,25 +141,37 @@ model_M = pl.create_matrix(full_data['Z'], full_data['N'], y_mod)
 # plot the output heatmap comparison
 # -----------------------------------------------------
 del_M = pl.matrix_sub(model_M, frdm_M)
-pl.plot_output(del_M)
+
+# plot title
+p_filename = "model_"+title+".pdf"
+# plot
+pl.plot_output(title, p_filename, output_path, del_M)
 # -----------------------------------------------------
 # --------------------------------------------------------------------
 
 
 
 
-# MSE BETWEEN MODEL AND FRDM FOR NON-EXPERIMENTAL NUCLEI
+# MSE between model and FRDM for all the nuclei including those outside 
+# of experimental observations
 # --------------------------------------------------------------------
-# Setup the test array from the FRDM data
-# x_test = FRDM_data[['N', 'Z']].to_numpy()
-# y_test = FRDM_data['ME_F'].to_numpy()
+# get model testing data
+M = su.model_select("FRDM", model_num, FRDM_full_data) 
 
-# Evaluate the model using the 
-# mod_test = nn.evaluate(x_test, y_test)
+# Convert dataframe values to numpy arrays
+x_data_FRDM, y_data_FRDM = M[0].to_numpy(), M[1].to_numpy()
+K = len(x_data_FRDM) # Number of nuclei 
 
-# Use the model on the nuclei NOT included in the AME_data and compare 
-# to the FDRM values
+# Use the model to predict mass excess for the nuclei including 
+# with values that are currently experimentally unknown
 # ----------------------------------------------------------------
-# y_pred = nn.predict(x_test)
+y_mod_FRDM = nn.predict(x_data_FRDM)
+model_M2 = pl.create_matrix(FRDM_full_data['Z'], FRDM_full_data['N'], y_mod_FRDM)
+
+# Calculate the rms difference between the model predictions and 
+# the FRDM predictions
+# ----------------------------------------------------
+ml.avg_sd(K, frdm_M, model_M2)
+# ----------------------------------------------------
 # ----------------------------------------------------------------
 # --------------------------------------------------------------------
