@@ -77,7 +77,8 @@ def plot_output(title, filename, output_path, del_ME):
 
 	# Constructs a heat map using the martix data
 	# ------------------------------------
-	im = axes.imshow(del_ME, cmap='hot_r', interpolation='nearest', origin='lower', vmin=0, vmax=6)
+	im = axes.imshow(del_ME, cmap='hot_r', interpolation='nearest', \
+					 origin='lower', vmin=0, vmax=6)
 	# ------------------------------------
 
 	# Plot settings 
@@ -93,7 +94,6 @@ def plot_output(title, filename, output_path, del_ME):
 
 	# color bar settings
 	cbar = plt.colorbar(im, fraction=0.033, pad=0.04)
-	cbar.set_ticks([1, 2, 3, 4, 5, 6])
 	cbar.set_label("Mass Difference (MeV) $[\u03B4_{ME}]$", size = 12)
 	# ------------------------------------
 	
