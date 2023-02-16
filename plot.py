@@ -99,6 +99,9 @@ def plot_output(title, filename, output_path, del_ME):
 	
 	# Save plot to output folder
 	fig.savefig(output_path + filename, dpi=300)
+
+	print("")
+	print("The heatmap has been saved to: " + output_path)
 # -------------------------------------------------------------------------------
 
 
