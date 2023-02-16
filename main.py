@@ -6,8 +6,6 @@ import plot as pl
 
 import examples as ex
 
-import numpy as np
-
 
 # Set the path for the training and testing files. Then read them into
 # a panda dataframe
@@ -50,10 +48,10 @@ FRDM_full_data = res[2]
 
 # gives a snapshot of the full dataframes
 # --------------------------------------------------------------------
-su.snapshot(20, full_data)
-print('')
-su.snapshot(20, FRDM_full_data)
-print('')
+# su.snapshot(20, full_data)
+# print('')
+# su.snapshot(20, FRDM_full_data)
+# print('')
 # --------------------------------------------------------------------
 
 
@@ -93,27 +91,45 @@ M = su.model_select("AME", model_num, full_data)
 x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
 
 
+
+
 # Setup the network 
 # -----------------------------------------------------
-# number of hidden layers
-num_hl = 1
-# num. of units in input, output and hidden layers
-input_l, output_l, hid_l = model_num, 1, [10] 
+# type of architecure PyTorch ['pyt'] or TensorFlow ['tf']
+arch_type = 'pyt'
 # type of network
 network = "nn"
 title = "M"+str(model_num)+"_"+network
 
-# Creates the neural network class
-nn = ml.NeuralNetwork(network, input_l, output_l, num_hl, hid_l)
+# number of hidden layers
+num_hl = 1
+# num. of units in input, output and hidden layers
+input_l, output_l, hid_l = model_num, 1, [10] 
+
+
+# Creates the neural network class using TensorFlow
+if arch_type == 'tf':
+	nn = ml.tf_NeuralNetwork(input_l, output_l, num_hl, hid_l)
+# Creates the neural netowrk class using PyTorch
+elif arch_type == 'pyt'
+	nn = ml.pyt_NeuralNetwork(network, input_l, output_l, hid_l)
+else:
+	print("")
+	print("System Exit: Please use PyTorch ['pyt'] or TensorFlow ['tf']")
+	sys.exit()
+
 # Display the model summary 
-nn.display()
+if arch_type == 'tf':
+	nn.display()
+else:
+	nn.display((0, model_num))
+
 # Train the model
-nn.fit(x_data, y_data, 5000, 75, 0)
+nn.fit(x_data, y_data, 10000, 75, 0)
 # Save the model to .txt file
 # nn.save(title+"_model", output_path)
 # Plot loss or accuracy over epochs
-if network == "mdn": nn.plot_accuracy()
-else: nn.plot_loss()
+nn.plot_loss()
 # -----------------------------------------------------
 # --------------------------------------------------------------------
 
