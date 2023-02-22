@@ -1,5 +1,6 @@
 import torch 
 from torch import nn
+import mdn
 
 import 	tensorflow as tf
 from 	tensorflow import keras
@@ -139,7 +140,7 @@ class tf_NeuralNetwork:
 		# save training and testing outputs for plotting
 		# ----------------------------------------------------
 		self.epochs = np.arange(1, len(res.history['val_loss'])+1, 1)
-		self.loss, self.val_loss = res.history['loss'], res.history['val_loss'] 
+		self.losses, self.val_losses = res.history['loss'], res.history['val_loss'] 
 		# ----------------------------------------------------
 	# --------------------------------------------------------------------------
 
@@ -171,59 +172,9 @@ class tf_NeuralNetwork:
 	def save(self, filename, output_path):
 		self.model.save(output_path+filename)
 	# --------------------------------------------------------------------------
-
-	
-	# --------------------------------------------------------------------------
-	# Display the loss of training the model 
-	# --------------------------------------------------------------------------
-	# Input:
-		# epochs		array 	number of iterations
-		# loss 			array 	the values for the training loss per epoch
-		# val_loss 		array 	the values for the testing loss per epoch
-	# --------------------------------------------------------------------------
-	# Output:
-	# --------------------------------------------------------------------------
-	def plot_loss(self):
-		fig, ((ax1)) = plt.subplots(nrows=1, ncols=1)
-
-		# plot training and testing loss
-		# ------------------------------------
-		ax1.plot(self.epochs, self.loss, 'r', c='b', linewidth=.4, \
-				 label='training')
-		ax1.plot(self.epochs, self.val_loss, 'r', c='k', linewidth=.4, \
-				 label='validation')
-		# ------------------------------------
-
-		# Plot settings 
-		# ------------------------------------
-		# set labels
-		ax1.set_xlabel('epochs', size = 12)
-		ax1.set_ylabel(self.mod_loss + ' loss', size = 12)
-
-		# remove spines
-		ax1.spines['top'].set_visible(False)
-		ax1.spines['right'].set_visible(False)
-
-		# enable legend
-		ax1.legend()
-
-		# ------------------------------------
-
-		plt.tight_layout()
-		plt.show()
-	# --------------------------------------------------------------------------
 ## ------------------------------------------------------------------------------
 
 
-
-
-
-# Use a probabilistic neural network (single layer) (MDN)
-# The idea is to assume the output data resemebles a mix of different probabiliy 
-# distributions, os insted of calculating the output node, y, from input vec(x) we
-# calculate the parameters of the probability distribution using our neural network. 
-# - In this case we need mean (\mu) and variance (\sigma) for the Gaussian distribution.
-# - these networks can capture probabilistic data much better than standard NN's
 
 
 ## ------------------------------------------------------------------------------
@@ -248,22 +199,24 @@ class pyt_NeuralNetwork:
 		# ------------------------------------------------------------------
 		# initialize the model
 		# neural network with on hidden layer
-		self.model = nn.Sequential(
-					 # Initial layer containing the a linear unit 
-					 nn.Linear(input_num, hid_units[0]),
-					 # Hidden layer using the non-linear
-					 	# ReLU activation function (or tanh)
-		    		 nn.ReLU(),
-		    		 # Final output linear layer, since the 
-		    		 # prediction is continuous
-		    		 nn.Linear(hid_units[0], output_num))
+		if net_type == "nn":
+			self.model = nn.Sequential(
+						 # Initial layer containing the a linear unit 
+						 nn.Linear(input_num, hid_units[0]),
+						 # Hidden layer using the non-linear
+						 	# ReLU activation function 
+			    		 nn.ReLU(),
+			    		 # Final output linear layer, since the 
+			    		 # prediction is continuous
+			    		 nn.Linear(hid_units[0], output_num))
+			# Compile. Loss function - mean square error
+			self.criterion = torch.nn.MSELoss()
 		# -------------------------------------------------------------------
 
 		# Compile the model. Uses the adam optimizer
 		# -------------------------------------------------------------------
-		# Compile. Loss function - mean square error
-		self.criterion = torch.nn.MSELoss()
-		self.optimizer = torch.optim.Adam(self.model.parameters(), lr=.01)
+		
+		self.optimizer = torch.optim.Adam(self.model.parameters(), lr=.001)
 		# -------------------------------------------------------------------
 	# --------------------------------------------------------------------------
 
@@ -275,6 +228,8 @@ class pyt_NeuralNetwork:
 		# x_data 		numpy array 	input training data 
 		# y_data 		numpy array 	corresponding outputs to the training data
 		# num_epochs 	integer			number of epochs (iterations)
+		# p 			integer 		patience, controls when model "converges" 
+		# 								(no improvement)
 		# verbosity 	integer 		0 - no update, 1 - progress bar
 	# --------------------------------------------------------------------------
 	# Output:
@@ -282,33 +237,67 @@ class pyt_NeuralNetwork:
 	def fit(self, x_data, y_data, num_epochs, p, verbosity = 0):
 
 		# split into training and validation set
-		self.x_train, x_val, self.y_train, y_val = \
+		self.x_train, self.x_val, self.y_train, self.y_val = \
 		train_test_split(x_data, y_data, test_size = 0.2, random_state = 1)
 
 		# in order to get correct input dimensions
-		x = torch.Tensor(self.x_train)
-		y = torch.Tensor(self.y_train).unsqueeze(1)
+		# 	training
+		xt_tensor = torch.Tensor(self.x_train)
+		yt_tensor = torch.Tensor(self.y_train).unsqueeze(1)
+		# 	validation
+		xv_tensor = torch.Tensor(self.x_val)
+		yv_tensor = torch.Tensor(self.y_val).unsqueeze(1)
 
 		# training losses list
-		self.epochs, self.losses = [], []
+		self.epochs, self.losses, self.val_losses = [], [], []
+		# patience counter used in convergence
+		val_loss_min, p_cnt = 100000, 0
 
 		print('')
 		# Train the model
 		for epoch in range(num_epochs):
+			# training 
+			# ------------------------------------
 			# Forward pass: Compute predicted y by passing x to the model
-			self.y_pred = self.model(x)
+			self.yt_pred = self.model(xt_tensor)
 
-			# compute and print loss
-			loss = self.criterion(self.y_pred, y)
+			# compute training loss
+			loss = self.criterion(self.yt_pred, yt_tensor)
 
-			if verbosity == 1:
-				print('epoch: ', epoch,' loss: ', loss.item())
-
-			# return validation and training loss
 			# store training loss per epoch for the output plots
 			self.epochs.append(epoch)
 			self.losses.append(loss.item())
+			# ------------------------------------
 
+			# validation
+			# ------------------------------------
+			self.yv_pred = self.model(xv_tensor)
+
+			# compute and store validation loss
+			val_loss = self.criterion(self.yv_pred, yv_tensor)
+			self.val_losses.append(val_loss.item())
+			# ------------------------------------
+
+			# print training and validation loss
+			if verbosity == 1:
+				print('epoch: ', epoch,' loss: ', loss.item(), \
+					  ' val_loss: ', val_loss.item())
+
+			# convergence 
+			# -------------------------------------
+			if val_loss.item() < val_loss_min: 
+				val_loss_min, p_cnt = val_loss.item(), 0 
+			else: 
+				p_cnt += 1
+
+			# stop the training if the val_loss hasn't 
+			# improved in p consecutive epochs g
+			if p_cnt >= p: break
+			# -------------------------------------
+
+
+			# adjust model parameters
+			# ------------------------------------
 			# Zero gradients, perform a backward pass, and update the weights.
 			self.optimizer.zero_grad()
 
@@ -317,6 +306,7 @@ class pyt_NeuralNetwork:
 
 			# Update the parameters
 			self.optimizer.step()
+			# ------------------------------------
 	# --------------------------------------------------------------------------
 
 
@@ -379,48 +369,192 @@ class pyt_NeuralNetwork:
 	# def load(self, input_path):
 	# 	return model.load_state_dict(torch.load(input_path))
 	# --------------------------------------------------------------------------
-
-
-	# --------------------------------------------------------------------------
-	# Display the loss of training the model 
-	# --------------------------------------------------------------------------
-	# Input:
-		# epochs		array 	number of iterations
-		# loss 			array 	the values for the training loss per epoch
-		# val_loss 		array 	the values for the testing loss per epoch
-	# --------------------------------------------------------------------------
-	# Output:
-	# --------------------------------------------------------------------------
-	def plot_loss(self):
-		fig, ((ax1)) = plt.subplots(nrows=1, ncols=1)
-
-		# plot training and testing loss
-		# ------------------------------------
-		ax1.plot(self.epochs, self.losses, 'r', c='b', linewidth=.4, \
-				 label='training')
-		# ax1.plot(self.epochs, self.val_loss, 'r', c='k', linewidth=.4, \
-		# 		 label='validation')
-		# ------------------------------------
-
-		# Plot settings 
-		# ------------------------------------
-		# set labels
-		ax1.set_xlabel('epochs', size = 12)
-		ax1.set_ylabel('loss', size = 12)
-
-		# remove spines
-		ax1.spines['top'].set_visible(False)
-		ax1.spines['right'].set_visible(False)
-
-		# enable legend
-		ax1.legend()
-		# ------------------------------------
-
-		plt.tight_layout()
-		plt.show()
-	# --------------------------------------------------------------------------
-
 ## ------------------------------------------------------------------------------
 
 
 
+
+# Use a probabilistic neural network (single layer) (MDN)
+# The idea is to assume the output data resemebles a mix of different probabiliy 
+# distributions, insted of calculating the output node, y, from input vec(x) we
+# calculate the parameters of the probability distribution using a neural 
+# network. 
+# - In this case we need the mean (mu) and variance (sigma) for the Gaussian 
+#   distribution.
+
+# To better represent probabilistic data sets than traditional deterministic 
+# neural networks, the MDN has the additional benefit of predicting the exact 
+# posterior distribution of each predicted value
+
+## ------------------------------------------------------------------------------
+class pyt_MixtureDensityNetwork:
+## ------------------------------------------------------------------------------
+
+	# --------------------------------------------------------------------------
+	# Create a model that maps a vector of inputs to a set of outputs
+	# --------------------------------------------------------------------------
+	# Input:
+		# net_type 		string 		refers to type of network nn or mdn
+		# input_num 	integer 	number of features in the input layer
+		# output_num 	integer  	number of features in the output layer
+		# hid_units 	array 		array corresponing to the # of units per layer
+	# --------------------------------------------------------------------------
+	# Output:
+	# --------------------------------------------------------------------------
+	def __init__(self, input_num, output_num, hid_units, num_gaussians):
+
+		# Setting each layer - each of the neurons of the dense 
+		# layers receives input from all neurons of the previous layer
+		# ------------------------------------------------------------------
+		# initialize the model
+		# mixture density network with on hidden layer
+		self.model = nn.Sequential(
+					 # Initial layer containing the a linear unit 
+					 nn.Linear(input_num, hid_units[0]),
+					 # Hidden layer using the non-linear
+					 	# Hyperbolic tangent activation function 
+		    		 nn.Tanh(),
+		    		 # Final output linear layer, since the 
+		    		 # prediction is continuous
+		    		 mdn.MDN(hid_units[0], output_num, num_gaussians)
+		    		 )
+		# -------------------------------------------------------------------
+		# self.model = mdn.MDN(hid_units[0], num_gaussians)
+
+		# Compile the model. Uses the adam optimizer
+		# -------------------------------------------------------------------
+		self.optimizer = torch.optim.Adam(self.model.parameters(), lr=.001)
+		# -------------------------------------------------------------------
+	# --------------------------------------------------------------------------
+
+
+	# --------------------------------------------------------------------------
+	# Train the model
+	# --------------------------------------------------------------------------
+	# Input:
+		# x_data 		numpy array 	input training data 
+		# y_data 		numpy array 	corresponding outputs to the training data
+		# num_epochs 	integer			number of epochs (iterations)
+		# p 			integer 		patience, controls when model "converges" 
+		# 								(no improvement)
+		# verbosity 	integer 		0 - no update, 1 - progress bar
+	# --------------------------------------------------------------------------
+	# Output:
+	# --------------------------------------------------------------------------
+	def fit(self, x_data, y_data, num_epochs, p, verbosity = 0):
+
+		# split into training and validation set
+		self.x_train, self.x_val, self.y_train, self.y_val = \
+		train_test_split(x_data, y_data, test_size = 0.2, random_state = 1)
+
+		# in order to get correct input dimensions
+		num_tsamples = len(self.x_train)
+		num_vsamples = len(self.x_val)
+
+		# convert numpy arrays to torch tensors
+		# 	training
+		xt_tensor = torch.from_numpy(np.float32(self.x_train).reshape(num_tsamples, 1))
+		yt_tensor = torch.from_numpy(np.float32(self.y_train).reshape(num_tsamples, 1))
+		# 	validation
+		xv_tensor = torch.from_numpy(np.float32(self.x_val).reshape(num_vsamples, 1))
+		yv_tensor = torch.from_numpy(np.float32(self.y_val).reshape(num_vsamples, 1))
+
+		# training losses list
+		self.epochs, self.losses, self.val_losses = [], [], []
+		# patience counter used in convergence
+		val_loss_min, p_cnt = 100000, 0
+
+		print('')
+		# Train the model
+		for epoch in range(num_epochs):
+			# training 
+			# ------------------------------------
+			# Forward pass: Compute predicted variables by passing x to the model
+			self.t_pi, self.t_sigma, self.t_mu = self.model(xt_tensor)
+
+			# compute training loss
+			loss = mdn.mdn_loss(self.t_pi, self.t_sigma, self.t_mu, yt_tensor)
+
+			# store training loss per epoch for the output plots
+			self.epochs.append(epoch)
+			self.losses.append(loss.item())
+			# ------------------------------------
+
+			# validation
+			# ------------------------------------
+			self.v_pi, self.v_sigma, self.v_mu = self.model(xv_tensor)
+
+			# compute and store validation loss
+			val_loss = mdn.mdn_loss(self.v_pi, self.v_sigma, self.v_mu, yv_tensor)
+			self.val_losses.append(val_loss.item())
+			# ------------------------------------
+
+			# print training and validation loss
+			if verbosity == 1:
+				print('epoch: ', epoch,' loss: ', loss.item(), \
+					  ' val_loss: ', val_loss.item())
+
+			# convergence 
+			# -------------------------------------
+			if val_loss.item() < val_loss_min: 
+				val_loss_min, p_cnt = val_loss.item(), 0 
+			else: 
+				p_cnt += 1
+
+			# stop the training if the val_loss hasn't 
+			# improved in p consecutive epochs g
+			if p_cnt >= p: break
+			# -------------------------------------
+
+
+			# adjust model parameters
+			# ------------------------------------
+			# Zero gradients, perform a backward pass, and update the weights.
+			self.optimizer.zero_grad()
+
+			# perform a backward pass (backpropagation)
+			loss.backward()
+
+			# Update the parameters
+			self.optimizer.step()
+			# ------------------------------------
+	# --------------------------------------------------------------------------
+
+
+	# --------------------------------------------------------------------------
+	# Display the model summary
+	# --------------------------------------------------------------------------
+	# --------------------------------------------------------------------------
+	def display(self, input_size):
+		from torchsummary import summary
+		summary(self.model, (input_size))
+	# --------------------------------------------------------------------------
+
+
+	# --------------------------------------------------------------------------
+	# 
+	# --------------------------------------------------------------------------
+	# Input:
+		# x_data	numpy array 		input testing data 
+	# --------------------------------------------------------------------------
+	# Output:
+		# y_data 	numpy array 		predictions using the model  
+	# --------------------------------------------------------------------------
+	def predict(self, x_data):
+
+		# in order to get correct input dimensions
+		num_samples = len(x_data)
+
+		# convert to pytorch tensor
+		x = torch.from_numpy(np.float32(x_data).reshape(num_samples, 1))
+		# predict data
+		pi, sigma, mu = self.model(x)
+
+		# convert back to numpy array
+		pi_data = pi.detach().cpu().numpy()
+		sigma_data = sigma.detach().cpu().numpy()
+		mu_data = mu.data.detach().cpu().numpy()
+
+		return pi, sigma, mu
+	# --------------------------------------------------------------------------
+## ------------------------------------------------------------------------------
