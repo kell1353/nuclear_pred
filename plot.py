@@ -1,4 +1,6 @@
 import matplotlib.pyplot as plt
+import seaborn as sns
+
 import numpy as np
 
 
@@ -139,3 +141,77 @@ def plot_var(var, res, labels):
 	plt.tight_layout()
 	plt.show()
 # -------------------------------------------------------------------------------
+
+
+
+## ------------------------------------------------------------------------------
+#  plot the density distribution of the target value x
+# -------------------------------------------------------------------------------
+# Input:
+	# data 		array 			pandas.dataframe or numpy.ndarray
+	# x 		array/string 	vectors or keys in data
+	# labels 	array 			labels for the x, y axes
+# -------------------------------------------------------------------------------
+# Output:
+# -------------------------------------------------------------------------------
+def plot_density(data, x, labels):
+	fig, ((ax)) = plt.subplots(nrows=1, ncols=1)
+
+	sns.set_style('whitegrid')
+	sns.kdeplot(data=data, x=x, fill = True, label = labels[0])
+
+	# Plot settings 
+	# ------------------------------------
+	# set labels
+	ax.set_xlabel("Mass Excess (MeV)", size = 12)
+	ax.set_ylabel("Density", size = 12)
+
+	# Turns off grid on the left Axis.
+	ax.grid(False)
+	# ------------------------------------
+
+	plt.legend()
+	plt.show()
+# -------------------------------------------------------------------------------
+
+
+
+# --------------------------------------------------------------------------
+# Display the loss of training the model 
+# --------------------------------------------------------------------------
+# Input:
+	# epochs		array 	number of iterations
+	# loss 			array 	the values for the training loss per epoch
+	# val_loss 		array 	the values for the testing loss per epoch
+	# loss_type 	string  type of losse for the y axis label
+# --------------------------------------------------------------------------
+# Output:
+# --------------------------------------------------------------------------
+def plot_loss(epochs, losses, val_losses, loss_type):
+	fig, ((ax1)) = plt.subplots(nrows=1, ncols=1)
+
+	# plot training and testing loss
+	# ------------------------------------
+	ax1.plot(epochs, losses, 'r', c='b', linewidth=.4, \
+			 label='training')
+	ax1.plot(epochs, val_losses, 'r', c='k', linewidth=.4, \
+			 label='validation')
+	# ------------------------------------
+
+	# Plot settings 
+	# ------------------------------------
+	# set labels
+	ax1.set_xlabel('epochs', size = 12)
+	ax1.set_ylabel(loss_type + ' loss', size = 12)
+
+	# remove spines
+	ax1.spines['top'].set_visible(False)
+	ax1.spines['right'].set_visible(False)
+
+	# enable legend
+	ax1.legend()
+	# ------------------------------------
+
+	plt.tight_layout()
+	plt.show()
+# --------------------------------------------------------------------------
