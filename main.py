@@ -4,7 +4,8 @@ import ML_lib as ml
 import setup as su
 import plot as pl
 
-import examples as ex
+import testing as ts
+
 
 
 # Set the path for the training and testing files. Then read them into
@@ -44,6 +45,12 @@ FRDM_full_data = res[2]
 # --------------------------------------------------------------------
 
 
+# TESTING
+###################################
+# ts.nn_mdn_comparison(output_path, full_data, FRDM_full_data)
+# pl.plot_density(full_data, "MASS_EXCESS", ["True dist"])
+# sys.exit()
+###################################
 
 
 # gives a snapshot of the full dataframes
@@ -96,7 +103,7 @@ x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
 # Setup the network 
 # -----------------------------------------------------
 # type of architecure PyTorch ['pyt'] or TensorFlow ['tf']
-arch_type = 'pyt'
+arch_type = "pyt"
 # type of network
 network = "nn"
 title = "M"+str(model_num)+"_"+network
@@ -111,7 +118,7 @@ input_l, output_l, hid_l = model_num, 1, [10]
 if arch_type == 'tf':
 	nn = ml.tf_NeuralNetwork(input_l, output_l, num_hl, hid_l)
 # Creates the neural netowrk class using PyTorch
-elif arch_type == 'pyt'
+elif arch_type == 'pyt':
 	nn = ml.pyt_NeuralNetwork(network, input_l, output_l, hid_l)
 else:
 	print("")
@@ -126,10 +133,14 @@ else:
 
 # Train the model
 nn.fit(x_data, y_data, 10000, 75, 0)
+
 # Save the model to .txt file
 # nn.save(title+"_model", output_path)
 # Plot loss or accuracy over epochs
-nn.plot_loss()
+if network == 'nn':
+	pl.plot_loss(nn.epochs, nn.losses, nn.val_losses, 'MSE')
+else:
+	pl.plot_loss(nn.epochs, nn.losses, nn.val_losses, 'NLL')
 # -----------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -149,7 +160,7 @@ y_mod = nn.predict(x_data)
 
 # setup the matrices for the datasets 
 # -----------------------------------------------------
-frdm_M = pl.create_matrix(FRDM_data['Z'], FRDM_full_data['N'], y_FRDM)
+frdm_M = pl.create_matrix(FRDM_full_data['Z'], FRDM_full_data['N'], y_FRDM)
 model_M = pl.create_matrix(full_data['Z'], full_data['N'], y_mod)
 # -----------------------------------------------------
 
