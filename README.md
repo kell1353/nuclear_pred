@@ -40,8 +40,8 @@ Contains functions that calculate the observables used in the input space. Highe
 #### Standard Space 
 
 (Model 2):
-- Number of neutrons | N
-- Number of protons | Z
+- Number of neutrons (N)
+- Number of protons (Z)
 
 #### Liquid Drop Model parameters
 
@@ -52,7 +52,7 @@ Contains functions that calculate the observables used in the input space. Highe
 - Asymmetry term
 
 (model 8):
-- paring terms (for protons and neutrons seperately)
+- Pairing terms (for protons and neutrons seperately)
 
 #### Nuclear Shell model parameters
 
@@ -64,6 +64,6 @@ Contains functions that calculate the observables used in the input space. Highe
 
 # Results
 I verified the results using a mixture density network and using a standard neural network architecture as well! The .pdf files are located in the output directory. 
-- M[m_num]_nn - corresponds to the output of a standard neural network 
-- M[m_num]_mdn - corresponds to the output of the mixture density network 
+- M[model_num]_nn - corresponds to the output of a standard neural network 
+- M[model_num]_mdn - corresponds to the output of the mixture density network 
 
