@@ -27,8 +27,12 @@ Because of this project I was able gain a deeper understanding for neural networ
 #### mdn.py
 
 #### plot.py
+Contains all of our plotting functions for specific cases
+- plots: comparitive heatmap between AME and FRDM | loss per epoch | probability density
 
 #### setup.py
+Contains all the functions required to setup the full dataframes and chose/view the model input space from the AME and FRDM data.
+- functions: read | snapshot | setup_full_data | model_select
 
 #### features.py
 
