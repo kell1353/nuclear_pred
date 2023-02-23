@@ -18,24 +18,49 @@ Because of this project I was able gain a deeper understanding for neural networ
 
 
 # Modules
-#### main.py
+## main.py
 
-#### testing.py
+## testing.py
 
-#### ML_lib.py
+## ML_lib.py
 
-#### mdn.py
+## mdn.py
 
-#### plot.py
+## plot.py
 Contains all of our plotting functions for specific cases
 - plots: comparitive heatmap between AME and FRDM | loss per epoch | probability density
 
-#### setup.py
+## setup.py
 Contains all the functions required to setup the full dataframes and chose/view the model input space from the AME and FRDM data.
 - functions: read | snapshot | setup_full_data | model_select
 
-#### features.py
+## features.py
+Contains functions that calculate the observables used in the input space. Higher models contain all previous parameters.
 
+#### Standard Space 
+
+(Model 2):
+- Number of neutrons | N
+- Number of protons | Z
+
+#### Liquid Drop Model parameters
+
+(Model 6):
+- Volume term (A) 
+- Surface term 
+- Coulomb term 
+- Asymmetry term
+
+(model 8):
+- paring terms (for protons and neutrons seperately)
+
+#### Nuclear Shell model parameters
+
+(model 10):
+- Compares the number of nucleons to each known experimental magic number and returns the value with the number of protons(neutrons) on top of a magic number or away from a magic number (whichever is lower) (for protons and neutrons seperately)
+
+(model 12): 
+- Getting the shell of the last protons(neutron) for each nuclei (for protons and neutrons seperately)
 
 # Results
 I verified the results using a mixture density network and using a standard neural network architecture as well! The .pdf files are located in the output directory. 
