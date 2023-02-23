@@ -1,10 +1,12 @@
 # Overview
-This program provides a look into the application of neural networks to predict values of interest in nuclear physics. The idea for the use of neural to predict the mass excess for nuclei not yet experimentally measured comes from two papers, cited here:
+This program provides a look into the application of neural networks to predict values of interest in nuclear physics. The idea of using a simple neural network to predict the mass excess for nuclei not yet experimentally measured is cited here:
 
 Lovell, A. E., Mohan, A. T., Sprouse, T. M., and M. R. Mumpower. 
 "Nuclear masses learned from a probabilistic neural network." 
 ArXiv, (2022). 
 https://doi.org/10.1103/PhysRevC.106.014305.
+
+The comparison data used comes from here:
 
 Moller, P., Sierk, A. J., Ichikawa, T., and H. Sagawa. 
 "Nuclear ground-state masses and deformations: FRDM(2012)." ArXiv, (2015). 
