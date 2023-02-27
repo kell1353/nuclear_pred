@@ -14,7 +14,7 @@ https://doi.org/10.1016/j.adt.2015.10.002.
 
 I came across the former paper sometime in early spring of 2022 while taking nuclear physics as a graduate student at SDSU. I found the application of neural networks to physics interesting at the time, but could not test it due to my own research work. Now as I have completed my Master's thesis, I am able to test it myself. 
 
-This project is inspired by the ideas in this paper and the code is written completely by me. The premise: by changing only the input features and keeping the neural network simple and static predictive performance of the mass excess would increase. They showed an increased performance using more input features which resulted additional decrease to the MSE for nuclei outside the training set.  
+This project is inspired by the ideas in this paper and the code is written completely by me. The premise: by changing only the input features and keeping the neural network simple and static, predictive performance of the model would get better. They showed an increased performance using more input features which resulted additional decrease to the MSE for nuclei outside the training set.  
 
 During this project I was able gain a deeper understanding for neural networks both conceptually and programmatically with the help of the TensorFlow and PyTorch docs. This code contains the necessary files and modules to verify the results referred to above! 
 
