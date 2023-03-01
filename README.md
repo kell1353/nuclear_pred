@@ -27,7 +27,7 @@ Used to test any of the networks by choosing different model spaces and various 
 
 ## testing.py
 - Contains functions to test the various neural network classes against common examples
-- Also contains the function used to verify the results from the paper
+- Also contains the function used to verify the results from the paper (NOTE: still working out some kinks for the mdn)
 
 ## ML_lib.py
 Contains three seperate neural network classes 
