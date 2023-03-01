@@ -12,8 +12,7 @@ import sys
 # a panda dataframe
 # --------------------------------------------------------------------
 # input_path
-output_path = "C:/Users/austi/Desktop/Code_Files/Machine_Learning_Projects" \
-				"/nuclear_pred/output/"
+# output_path 
 
 training_data = 'training_data.txt'
 testing_data = 'testing_data.txt'
@@ -57,8 +56,8 @@ print('')
 
 # run testing functions if wanted 
 # --------------------------------------------------------------------
-ts.nn_mdn_comparison(output_path, full_data, FRDM_full_data)
-sys.exit()
+# ts.nn_mdn_comparison(output_path, full_data, FRDM_full_data)
+# sys.exit()
 # --------------------------------------------------------------------
 
 
@@ -100,9 +99,9 @@ x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
 
 # Setup the network 
 # -----------------------------------------------------
-# type of architecure PyTorch ['pyt'] or TensorFlow ['tf']
+# type of architecure: PyTorch ['pyt'] or TensorFlow ['tf']
 arch_type = "pyt"
-# type of network Mixture Density Network ['mdn'] or Neural Network ['nn']
+# type of network: Mixture Density Network ['mdn'] or Neural Network ['nn']
 network = "nn"  
 title = "M"+str(model_num)+"_"+network
 
