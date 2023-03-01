@@ -1,10 +1,10 @@
-import sys
-
 import ML_lib as ml
 import setup as su
 import plot as pl
 
 import testing as ts
+
+import sys
 
 
 
@@ -45,22 +45,21 @@ FRDM_full_data = res[2]
 # --------------------------------------------------------------------
 
 
-# TESTING
-###################################
-# ts.nn_mdn_comparison(output_path, full_data, FRDM_full_data)
-# pl.plot_density(full_data, "MASS_EXCESS", ["True dist"])
-# sys.exit()
-###################################
-
-
 # gives a snapshot of the full dataframes
 # --------------------------------------------------------------------
-# su.snapshot(20, full_data)
-# print('')
-# su.snapshot(20, FRDM_full_data)
-# print('')
+su.snapshot(20, full_data)
+print('')
+su.snapshot(20, FRDM_full_data)
+print('')
 # --------------------------------------------------------------------
 
+
+
+# run testing functions if wanted 
+# --------------------------------------------------------------------
+ts.nn_mdn_comparison(output_path, full_data, FRDM_full_data)
+sys.exit()
+# --------------------------------------------------------------------
 
 
 
@@ -99,13 +98,12 @@ x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
 
 
 
-
 # Setup the network 
 # -----------------------------------------------------
 # type of architecure PyTorch ['pyt'] or TensorFlow ['tf']
 arch_type = "pyt"
-# type of network
-network = "nn"
+# type of network Mixture Density Network ['mdn'] or Neural Network ['nn']
+network = "nn"  
 title = "M"+str(model_num)+"_"+network
 
 # number of hidden layers
@@ -119,7 +117,12 @@ if arch_type == 'tf':
 	nn = ml.tf_NeuralNetwork(input_l, output_l, num_hl, hid_l)
 # Creates the neural netowrk class using PyTorch
 elif arch_type == 'pyt':
-	nn = ml.pyt_NeuralNetwork(network, input_l, output_l, hid_l)
+	# Creates the mixture density netowrk class using PyTorch
+	if network == "mdn":
+		num_gaussians = 4
+		nn = ml.pyt_MixtureDensityNetwork(input_l, output_l, hid_l, num_gaussians)
+	else:
+		nn = ml.pyt_NeuralNetwork(network, input_l, output_l, hid_l)
 else:
 	print("")
 	print("System Exit: Please use PyTorch ['pyt'] or TensorFlow ['tf']")
@@ -132,15 +135,20 @@ else:
 	nn.display((0, model_num))
 
 # Train the model
-nn.fit(x_data, y_data, 10000, 75, 0)
+nn.fit(x_data, y_data, 20000, 500, 0)
 
 # Save the model to .txt file
 # nn.save(title+"_model", output_path)
+
 # Plot loss or accuracy over epochs
 if network == 'nn':
 	pl.plot_loss(nn.epochs, nn.losses, nn.val_losses, 'MSE')
 else:
 	pl.plot_loss(nn.epochs, nn.losses, nn.val_losses, 'NLL')
+
+# print('')
+print("# of epochs: ", nn.epochs[-1])
+print("Model loss: ", nn.losses[-1])
 # -----------------------------------------------------
 # --------------------------------------------------------------------
 
@@ -155,13 +163,17 @@ y_FRDM = FRDM_full_data['ME_F'].to_numpy()
 # Use the model on the nuclei NOT included in the AME_data
 # and compare to the FDRM values
 # -----------------------------------------------------
-y_mod = nn.predict(x_data) 
+if network == 'nn': 
+	mod_pred = nn.predict(x_data) 
+else: 
+	pi_pred, sigma_pred, mu_pred = nn.predict(x_data)
+	mod_pred = mu_pred
 # -----------------------------------------------------
 
 # setup the matrices for the datasets 
 # -----------------------------------------------------
 frdm_M = pl.create_matrix(FRDM_full_data['Z'], FRDM_full_data['N'], y_FRDM)
-model_M = pl.create_matrix(full_data['Z'], full_data['N'], y_mod)
+model_M = pl.create_matrix(full_data['Z'], full_data['N'], mod_pred)
 # -----------------------------------------------------
 
 

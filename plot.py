@@ -215,3 +215,11 @@ def plot_loss(epochs, losses, val_losses, loss_type):
 	plt.tight_layout()
 	plt.show()
 # --------------------------------------------------------------------------
+
+
+def plot_norm(mu, sigma):
+	x = np.linspace(-15, 15, num = 1000)
+	y = 1/(sigma * np.sqrt(2 * np.pi)) * np.exp(-0.5*((x-mu)/sigma)**2)
+
+	plt.plot(x, y, linewidth=.5, c='k')
+	plt.show()
