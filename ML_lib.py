@@ -1,5 +1,5 @@
 import torch 
-from torch import nn
+from   torch import nn
 import mdn
 
 import 	tensorflow as tf
@@ -7,7 +7,6 @@ from 	tensorflow import keras
 from 	tensorflow.keras import layers
 
 import 	numpy as np
-import 	matplotlib.pyplot as plt
 from 	sklearn.model_selection import train_test_split
 
 import 	sys
@@ -403,23 +402,11 @@ class pyt_MixtureDensityNetwork:
 	# --------------------------------------------------------------------------
 	def __init__(self, input_num, output_num, hid_units, num_gaussians):
 
-		# Setting each layer - each of the neurons of the dense 
-		# layers receives input from all neurons of the previous layer
+		# initialize the mixture density model
 		# ------------------------------------------------------------------
-		# initialize the model
 		# mixture density network with on hidden layer
-		self.model = nn.Sequential(
-					 # Initial layer containing the a linear unit 
-					 nn.Linear(input_num, hid_units[0]),
-					 # Hidden layer using the non-linear
-					 	# Hyperbolic tangent activation function 
-		    		 nn.Tanh(),
-		    		 # Final output linear layer, since the 
-		    		 # prediction is continuous
-		    		 mdn.MDN(hid_units[0], output_num, num_gaussians)
-		    		 )
+		self.model = mdn.MDN(input_num, hid_units[0], num_gaussians)
 		# -------------------------------------------------------------------
-		# self.model = mdn.MDN(hid_units[0], num_gaussians)
 
 		# Compile the model. Uses the adam optimizer
 		# -------------------------------------------------------------------
@@ -448,23 +435,19 @@ class pyt_MixtureDensityNetwork:
 		train_test_split(x_data, y_data, test_size = 0.2, random_state = 1)
 
 		# in order to get correct input dimensions
-		num_tsamples = len(self.x_train)
-		num_vsamples = len(self.x_val)
-
-		# convert numpy arrays to torch tensors
 		# 	training
-		xt_tensor = torch.from_numpy(np.float32(self.x_train).reshape(num_tsamples, 1))
-		yt_tensor = torch.from_numpy(np.float32(self.y_train).reshape(num_tsamples, 1))
+		xt_tensor = torch.Tensor(self.x_train)#.unsqueeze(1)
+		yt_tensor = torch.Tensor(self.y_train).unsqueeze(1)
 		# 	validation
-		xv_tensor = torch.from_numpy(np.float32(self.x_val).reshape(num_vsamples, 1))
-		yv_tensor = torch.from_numpy(np.float32(self.y_val).reshape(num_vsamples, 1))
+		xv_tensor = torch.Tensor(self.x_val)#.unsqueeze(1)
+		yv_tensor = torch.Tensor(self.y_val).unsqueeze(1)
 
 		# training losses list
 		self.epochs, self.losses, self.val_losses = [], [], []
 		# patience counter used in convergence
 		val_loss_min, p_cnt = 100000, 0
 
-		print('')
+		# print('')
 		# Train the model
 		for epoch in range(num_epochs):
 			# training 
@@ -502,7 +485,7 @@ class pyt_MixtureDensityNetwork:
 				p_cnt += 1
 
 			# stop the training if the val_loss hasn't 
-			# improved in p consecutive epochs g
+			# improved in p consecutive epochs 
 			if p_cnt >= p: break
 			# -------------------------------------
 
@@ -546,7 +529,7 @@ class pyt_MixtureDensityNetwork:
 		num_samples = len(x_data)
 
 		# convert to pytorch tensor
-		x = torch.from_numpy(np.float32(x_data).reshape(num_samples, 1))
+		x = torch.Tensor(x_data).unsqueeze(1)
 		# predict data
 		pi, sigma, mu = self.model(x)
 
@@ -555,6 +538,6 @@ class pyt_MixtureDensityNetwork:
 		sigma_data = sigma.detach().cpu().numpy()
 		mu_data = mu.data.detach().cpu().numpy()
 
-		return pi, sigma, mu
+		return pi_data, sigma_data, mu_data
 	# --------------------------------------------------------------------------
 ## ------------------------------------------------------------------------------
