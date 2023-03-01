@@ -1,4 +1,3 @@
-import sys
 import numpy as np
 import matplotlib.pyplot as plt
 from   sklearn.model_selection import train_test_split
@@ -9,6 +8,8 @@ import plot as pl
 
 import mdn
 import torch
+
+import sys
 
 
 ## -------------------------------------------------------------------------------
@@ -46,12 +47,17 @@ def nn_mdn_comparison(output_path, full_data, FRDM_full_data):
 			input_l, output_l, hid_l = m_num, 1, [10] 
 
 			# Creates the neural network class
-			nn =  ml.pyt_NeuralNetwork(network, input_l, output_l, hid_l)
+			if network == "mdn":
+				num_gaussians = 4
+				nn = ml.pyt_MixtureDensityNetwork(input_l, output_l, hid_l, num_gaussians)
+			else:
+				nn = ml.pyt_NeuralNetwork(network, input_l, output_l, hid_l)
+
 			# Display the model summary 
 			nn.display((0, m_num))
 
 			# Train the model
-			nn.fit(x_data, y_data, 20000, 100, 0)
+			nn.fit(x_data, y_data, 20000, 500, 0)
 
 			# Save the model to .txt file
 			# nn.save(title+"_model", output_path)
@@ -112,7 +118,7 @@ def nn_mdn_comparison(output_path, full_data, FRDM_full_data):
 			print('')
 			# ----------------------------------------------------------------
 
-
+		# TESTING: working some kinks out with the mdn
 		sys.exit()
 ## -------------------------------------------------------------------------------
 
@@ -226,8 +232,6 @@ def pytorch_ex():
 
 
 
-
-
 # https://notebook.community/hardmaru/pytorch_notebooks/mixture_density_networks
 def mdn_example():
 	from torch.autograd import Variable
@@ -253,25 +257,46 @@ def mdn_example():
 	 								   		 num_gaussians)
 	# ---------------------------------------------------------
 
-	# mdn.display((0, 1))
+	mdn_model.display((0, 1))
 
 	# Train the network
 	# ---------------------------------------------------------
-	num_epochs = 15000
-	p = 300
-	mdn_model.fit(mdnx_data, mdny_data, num_epochs, p, verbosity = 1)
+	num_epochs = 10000
+	p = 200
+	mdn_model.fit(mdnx_data, mdny_data, num_epochs, p, verbosity = 0)
+	# Plot loss
+	pl.plot_loss(mdn_model.epochs, mdn_model.losses, mdn_model.val_losses, "NLL")
 	# ---------------------------------------------------------
 
 	# Plot the training results
 	# ---------------------------------------------------------
 	pi_pred, sigma_pred, mu_pred = mdn_model.predict(x_test_data)
 
-	# sample one Gaussian
-	samples = mdn.sample(torch.Tensor(pi_pred), torch.Tensor(sigma_pred), \
-						 torch.Tensor(mu_pred))
+	# plot the data
+	fig, ((ax1, ax2)) = plt.subplots(nrows=1, ncols=2)
 
-	plt.scatter(mdnx_data, mdny_data, s=6, alpha = .2)
-	plt.scatter(x_test_data, samples, s=6, alpha = .2, color = 'red')
+	# FIRST plot
+	ax1.scatter(mdnx_data, mdny_data, s=6, alpha = .2, c='black')
+	for i in range(num_gaussians):
+		# plot means and variances of the Gaussians
+		ax1.plot(x_test_data, mu_pred[:,i], linewidth=.7, label="Mixture "+str(i))
+		ax1.fill_between(x_test_data, mu_pred[:,i]-sigma_pred[:,i], \
+						 mu_pred[:,i]+sigma_pred[:,i], alpha=0.1)
+
+	# SECOND plot
+	k = mdn.gumbel_sample(pi_pred)
+	indices = (np.arange(n_samples), k)
+	rn = np.random.randn(n_samples)
+	samples = rn * sigma_pred[indices] + mu_pred[indices]
+
+	# sample one Gaussian
+	# samples = mdn.sample(torch.Tensor(pi_pred), torch.Tensor(sigma_pred), \
+	# 					 torch.Tensor(mu_pred))
+
+	ax2.scatter(mdnx_data, mdny_data, s=6, alpha = .2)
+	ax2.scatter(x_test_data, samples, s=6, alpha = .2, color = 'red')
+	
+	ax1.legend()
 	plt.show()
 	# ---------------------------------------------------------
 
