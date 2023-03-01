@@ -19,14 +19,25 @@ This project is inspired by the ideas in this paper and the code is written comp
 During this project I was able gain a deeper understanding for neural networks both conceptually and programmatically with the help of the TensorFlow and PyTorch docs. This code contains the necessary files and modules to verify the results referred to above! 
 
 
-# Modules
+# Modules (main features)
 ## main.py
+Used to test any of the networks by choosing different model spaces and various other parameters
+- type of architecure: PyTorch ['pyt'] or TensorFlow ['tf']
+- type of network: Mixture Density Network ['mdn'] or Neural Network ['nn']
 
 ## testing.py
+- Contains functions to test the various neural network classes against common examples
+- Also contains the function used to verify the results from the paper (NOTE: still working out some kinks for the mdn)
 
 ## ML_lib.py
+Contains three seperate neural network classes 
+- First: Initializes an arbitrary NN in TensorFlow using Keras
+- Second: Initializes an arbitrary NN in PyTorch with a single hidden layer 
+- Third: Initializes an mixture density network in PyTorch with a single hidden layer using mdn.py
 
 ## mdn.py
+Contains all the necessary code to evaluate a mixture density network 
+- The network class, functions to compute a gaussian distribution and negative likelihood loss, and sample from the mixture
 
 ## plot.py
 Contains all of our plotting functions for specific cases
@@ -66,6 +77,6 @@ Contains functions that calculate the observables used in the input space. Highe
 
 # Results
 I verified the results using a mixture density network and using a standard neural network architecture as well! The .pdf files are located in the output directory. 
-- M[model_num]_nn - corresponds to the output of a standard neural network 
-- M[model_num]_mdn - corresponds to the output of the mixture density network 
+- model_M[model_num]_nn - corresponds to the output of a standard neural network 
+- model_M[model_num]_mdn - corresponds to the output of the mixture density network 
 
