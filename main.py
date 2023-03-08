@@ -1,8 +1,9 @@
-import ML_lib as ml
+import ml_lib as ml
 import setup as su
 import plot as pl
 
 import testing as ts
+import mdn
 
 import sys
 
@@ -12,7 +13,8 @@ import sys
 # a panda dataframe
 # --------------------------------------------------------------------
 # input_path
-# output_path 
+output_path = "C:/Users/austi/Desktop/Code_Files/Machine_Learning_Projects" \
+				"/nuclear_pred/output/"
 
 training_data = 'training_data.txt'
 testing_data = 'testing_data.txt'
@@ -102,7 +104,7 @@ x_data, y_data = M[0].to_numpy(), M[1].to_numpy()
 # type of architecure: PyTorch ['pyt'] or TensorFlow ['tf']
 arch_type = "pyt"
 # type of network: Mixture Density Network ['mdn'] or Neural Network ['nn']
-network = "nn"  
+network = "mdn"  
 title = "M"+str(model_num)+"_"+network
 
 # number of hidden layers
@@ -118,7 +120,7 @@ if arch_type == 'tf':
 elif arch_type == 'pyt':
 	# Creates the mixture density netowrk class using PyTorch
 	if network == "mdn":
-		num_gaussians = 4
+		num_gaussians = 3
 		nn = ml.pyt_MixtureDensityNetwork(input_l, output_l, hid_l, num_gaussians)
 	else:
 		nn = ml.pyt_NeuralNetwork(network, input_l, output_l, hid_l)
@@ -134,7 +136,7 @@ else:
 	nn.display((0, model_num))
 
 # Train the model
-nn.fit(x_data, y_data, 20000, 500, 0)
+nn.fit(x_data, y_data, 1000, 1500, 0)
 
 # Save the model to .txt file
 # nn.save(title+"_model", output_path)
@@ -166,12 +168,16 @@ if network == 'nn':
 	mod_pred = nn.predict(x_data) 
 else: 
 	pi_pred, sigma_pred, mu_pred = nn.predict(x_data)
-	mod_pred = mu_pred
+	# choose the Gaussian that is the most important
+	ind, mod_pred = mdn.choose_gaussian(num_gaussians, mu_pred[:, 0], pi_pred[:, 0])
+	# 
 # -----------------------------------------------------
+
 
 # setup the matrices for the datasets 
 # -----------------------------------------------------
 frdm_M = pl.create_matrix(FRDM_full_data['Z'], FRDM_full_data['N'], y_FRDM)
+# model_M = pl.create_matrix(full_data['Z'], full_data['N'], mod_pred)
 model_M = pl.create_matrix(full_data['Z'], full_data['N'], mod_pred)
 # -----------------------------------------------------
 
@@ -203,7 +209,14 @@ K = len(x_data_FRDM) # Number of nuclei
 # Use the model to predict mass excess for the nuclei including 
 # with values that are currently experimentally unknown
 # ----------------------------------------------------------------
-y_mod_FRDM = nn.predict(x_data_FRDM)
+if network == 'nn':
+	y_mod_FRDM = nn.predict(x_data_FRDM)
+else: 
+	pi_pred, sigma_pred, mu_pred = nn.predict(x_data_FRDM)
+	# use the gaussian from before
+	y_mod_FRDM = mu_pred[:, 0, ind]
+
+
 model_M2 = pl.create_matrix(FRDM_full_data['Z'], FRDM_full_data['N'], y_mod_FRDM)
 
 # Calculate the rms difference between the model predictions and 
