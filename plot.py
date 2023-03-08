@@ -98,6 +98,8 @@ def plot_output(title, filename, output_path, del_ME):
 	cbar = plt.colorbar(im, fraction=0.033, pad=0.04)
 	cbar.set_label("Mass Difference (MeV) $[\u03B4_{ME}]$", size = 12)
 	# ------------------------------------
+
+	plt.show()
 	
 	# Save plot to output folder
 	fig.savefig(output_path + filename, dpi=300)

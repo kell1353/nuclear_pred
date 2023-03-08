@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 from   sklearn.model_selection import train_test_split
 
 import setup as su
-import ML_lib as ml
+import ml_lib as ml
 import plot as pl
 
 import mdn
