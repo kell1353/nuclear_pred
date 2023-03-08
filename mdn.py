@@ -66,6 +66,22 @@ def gumbel_sample(x, axis=1):
     return (np.log(x) + z).argmax(axis=axis)
 
 
+# choose the most relavent Gaussian for the data
+def choose_gaussian(num_gaussians, mus, pis):
+
+    pi_avgs = np.zeros(num_gaussians)
+
+    for i in range(num_gaussians):
+        pi_avgs[i] = np.average(pis[:, i])
+
+    # choose the Gaussian with the highest average value of pi
+    max_val, max_ind = max(pi_avgs), np.argmax(pi_avgs)
+
+    return max_ind, mus[:, max_ind]
+
+    
+
+
 
 # TESTING: Currently testing this function
 def best_mean(num_gaussians, y, mus):
@@ -83,6 +99,9 @@ def best_mean(num_gaussians, y, mus):
                 y_pred[i] = mus[i, j] 
 
     return y_pred
+
+
+
 
 
 
